@@ -25,7 +25,8 @@ namespace CreateServicePrinciple {
             var clientSecret = "{clientSecret}";
 
             // using Azure.Identity;
-            var options = new TokenCredentialOptions {
+            var options = new TokenCredentialOptions
+            {
                 AuthorityHost = AzureAuthorityHosts.AzurePublicCloud
             };
 
@@ -34,8 +35,6 @@ namespace CreateServicePrinciple {
                 tenantId, clientId, clientSecret, options);
 
             var graphClient = new GraphServiceClient(clientSecretCredential, scopes);
-
-
 
             Random seed = new Random();
             String displayName = "KTA" + seed.Next().ToString();
@@ -46,36 +45,33 @@ namespace CreateServicePrinciple {
             {
                 DisplayName = displayName //"KTA" + seed.Next().ToString()
             };
-            await graphClient.Applications
+            Application app = await graphClient.Applications
                 .Request()
                 .AddAsync(application);
 
-            var applications = await graphClient.Applications
-                .Request()
-                .Filter($"displayName eq '{displayName}'")
-                .GetAsync();
-
-            string appID = "";
-
-            foreach(var app in applications)
+            if (app.AppId.Length > 0)
             {
-                Console.WriteLine(app.DisplayName);
-                if (app.DisplayName.Equals(displayName)){ 
-                    appID = app.AppId;
-                } 
-            }
-
-            if (appID.Length > 0) {
-                ServicePrincipal servicePrincipal = new ServicePrincipal {
-                    AppId = appID
+                ServicePrincipal servicePrincipal = new ServicePrincipal
+                {
+                    AppId = app.AppId
                 };
-                await graphClient.ServicePrincipals
+                ServicePrincipal sp = await graphClient.ServicePrincipals
                     .Request()
                     .AddAsync(servicePrincipal);
-            }
-            
 
-            Console.WriteLine("New AppID = " + appID);
+                var passwordCredential = new PasswordCredential
+                {
+                    DisplayName = "pa$$w0rd"
+                };
+
+                await graphClient.ServicePrincipals[sp.Id]
+                        .AddPassword(passwordCredential)
+                       .Request()
+                       .PostAsync();
+
+            }
+
+            Console.WriteLine("New AppID = " + app.AppId);
             Console.ReadLine();
 
         }
